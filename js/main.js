@@ -28,12 +28,16 @@ function initPreloader() {
   const preloader = document.getElementById('sitePreloader');
   const fill = document.getElementById('preloaderFill');
   const status = document.getElementById('preloaderStatus');
+  const v1 = document.getElementById('heroVideo1');
+  const v2 = document.getElementById('heroVideo2');
   if (!preloader) return;
 
   const startTime = Date.now();
-  const minDisplayTime = 1200; // Минимальное время для плавной эстетики
+  const minDisplayTime = 1400; // Минимальное время для плавной эстетики
   let progress = 15;
   let isDone = false;
+  let pageLoaded = (document.readyState === 'complete');
+  let videoReady = false;
 
   const setProgress = (val, text) => {
     progress = Math.max(progress, val);
@@ -43,16 +47,70 @@ function initPreloader() {
       setTimeout(() => {
         status.textContent = text;
         status.style.opacity = '1';
-      }, 140);
+      }, 130);
     }
   };
 
   if (fill) fill.style.width = '15%';
 
-  // Плавный прирост индикатора
-  setTimeout(() => setProgress(40, 'Погружение в тишину леса...'), 120);
-  setTimeout(() => setProgress(70, 'Подготовка уединения...'), 500);
-  setTimeout(() => setProgress(88, 'Загрузка панорамы...'), 900);
+  // Начальный плавный ход
+  setTimeout(() => setProgress(35, 'Погружение в тишину леса...'), 100);
+
+  // 1. Проверка загрузки DOM и изображений
+  if (!pageLoaded) {
+    window.addEventListener('load', () => {
+      pageLoaded = true;
+      setProgress(60, 'Загрузка медиаматериалов...');
+      checkAllReady();
+    });
+  }
+
+  // 2. Отслеживание реальной буферизации видео
+  function markVideoReady() {
+    if (videoReady) return;
+    videoReady = true;
+    setProgress(92, 'Подготовка видеопанорамы...');
+    checkAllReady();
+  }
+
+  if (v1) {
+    v1.preload = 'auto';
+    if (v2) v2.preload = 'auto';
+
+    // Слушаем прогресс скачивания видео
+    v1.addEventListener('progress', () => {
+      if (v1.duration > 0 && v1.buffered.length > 0) {
+        const bufferedEnd = v1.buffered.end(v1.buffered.length - 1);
+        const ratio = Math.min(1, bufferedEnd / Math.min(v1.duration, 4)); // хотя бы 4 сек в буфере
+        const calcP = Math.floor(40 + ratio * 50);
+        setProgress(calcP, 'Буферизация панорамы...');
+      }
+    });
+
+    // События готовности воспроизведения без задержки
+    v1.addEventListener('canplay', markVideoReady, { once: true });
+    v1.addEventListener('canplaythrough', markVideoReady, { once: true });
+    v1.addEventListener('playing', markVideoReady, { once: true });
+
+    // Принудительно запускаем декодер
+    const p = v1.play();
+    if (p !== undefined) {
+      p.then(() => markVideoReady()).catch(() => markVideoReady());
+    }
+
+    // Если видео уже в кэше и готово
+    if (v1.readyState >= 3) {
+      markVideoReady();
+    }
+  } else {
+    videoReady = true;
+  }
+
+  function checkAllReady() {
+    if (pageLoaded && videoReady) {
+      dismiss();
+    }
+  }
 
   const dismiss = () => {
     if (isDone) return;
@@ -73,13 +131,12 @@ function initPreloader() {
     }, remaining);
   };
 
-  if (document.readyState === 'complete') {
-    dismiss();
-  } else {
-    window.addEventListener('load', dismiss);
-    // Страховочный таймаут (3.5 сек) если сеть совсем медленная
-    setTimeout(dismiss, 3500);
-  }
+  // Страховочный таймаут (8 сек на случай совсем дохлой мобильной сети)
+  setTimeout(() => {
+    if (!isDone) {
+      dismiss();
+    }
+  }, 8000);
 }
 
 /* ==========================================================================
