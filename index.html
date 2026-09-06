@@ -21,9 +21,28 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Oswald:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
   <!-- CSS -->
-  <link rel="stylesheet" href="css/style.css?v=3.2">
+  <link rel="stylesheet" href="css/style.css?v=3.3">
 </head>
-<body>
+<body class="preloader-active">
+
+  <!-- ==========================================================================
+       PRELOADER (СКАНДИНАВСКАЯ ЗАСТАВКА)
+       ========================================================================== -->
+  <div class="site-preloader" id="sitePreloader">
+    <div class="preloader-backdrop-glow"></div>
+    <div class="preloader-inner">
+      <div class="preloader-emblem-wrap">
+        <div class="preloader-ring"></div>
+        <img src="images/logo-tree.svg" alt="Куликовский" class="preloader-emblem">
+      </div>
+      <div class="preloader-title">КУЛИКОВСКИЙ</div>
+      <div class="preloader-subtitle">ГЛЭМПИНГ • ОРЕНБУРГ</div>
+      <div class="preloader-track">
+        <div class="preloader-fill" id="preloaderFill"></div>
+      </div>
+      <div class="preloader-status" id="preloaderStatus">Слияние с природой...</div>
+    </div>
+  </div>
 
   <!-- ==========================================================================
        HEADER
@@ -1163,6 +1182,6 @@
   <div class="toast-notice" id="toastNotice"></div>
 
   <!-- JS -->
-  <script src="js/main.js?v=3.2"></script>
+  <script src="js/main.js?v=3.3"></script>
 </body>
 </html>

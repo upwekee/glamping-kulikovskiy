@@ -4,6 +4,9 @@
  * интеграция бронирования через VK и телефон.
  */
 
+// Немедленный запуск прелоадера
+initPreloader();
+
 document.addEventListener('DOMContentLoaded', () => {
   initDates();
   initHeaderScroll();
@@ -17,6 +20,67 @@ document.addEventListener('DOMContentLoaded', () => {
   initSpaSlider();
   initPromoSlider();
 });
+
+/* ==========================================================================
+   СКАНДИНАВСКИЙ ПРЕЛОАДЕР (PREMIUM INTRO SCREEN)
+   ========================================================================== */
+function initPreloader() {
+  const preloader = document.getElementById('sitePreloader');
+  const fill = document.getElementById('preloaderFill');
+  const status = document.getElementById('preloaderStatus');
+  if (!preloader) return;
+
+  const startTime = Date.now();
+  const minDisplayTime = 1200; // Минимальное время для плавной эстетики
+  let progress = 15;
+  let isDone = false;
+
+  const setProgress = (val, text) => {
+    progress = Math.max(progress, val);
+    if (fill) fill.style.width = progress + '%';
+    if (status && text && status.textContent !== text) {
+      status.style.opacity = '0';
+      setTimeout(() => {
+        status.textContent = text;
+        status.style.opacity = '1';
+      }, 140);
+    }
+  };
+
+  if (fill) fill.style.width = '15%';
+
+  // Плавный прирост индикатора
+  setTimeout(() => setProgress(40, 'Погружение в тишину леса...'), 120);
+  setTimeout(() => setProgress(70, 'Подготовка уединения...'), 500);
+  setTimeout(() => setProgress(88, 'Загрузка панорамы...'), 900);
+
+  const dismiss = () => {
+    if (isDone) return;
+    isDone = true;
+    setProgress(100, 'Добро пожаловать');
+
+    const elapsed = Date.now() - startTime;
+    const remaining = Math.max(0, minDisplayTime - elapsed);
+
+    setTimeout(() => {
+      preloader.classList.add('loaded');
+      document.body.classList.remove('preloader-active');
+      document.body.classList.add('site-ready');
+
+      setTimeout(() => {
+        preloader.style.display = 'none';
+      }, 950);
+    }, remaining);
+  };
+
+  if (document.readyState === 'complete') {
+    dismiss();
+  } else {
+    window.addEventListener('load', dismiss);
+    // Страховочный таймаут (3.5 сек) если сеть совсем медленная
+    setTimeout(dismiss, 3500);
+  }
+}
 
 /* ==========================================================================
    ИНИЦИАЛИЗАЦИЯ ДАТ ПО УМОЛЧАНИЮ
