@@ -87,19 +87,34 @@ function initPreloader() {
       }
     });
 
-    // События готовности воспроизведения без задержки
-    v1.addEventListener('canplay', markVideoReady, { once: true });
-    v1.addEventListener('canplaythrough', markVideoReady, { once: true });
-    v1.addEventListener('playing', markVideoReady, { once: true });
+    // Событие timeupdate и playing с currentTime > 0.1 гарантируют, что видео РЕАЛЬНО пошло!
+    const checkPlayingTime = () => {
+      if (v1.currentTime > 0.1) {
+        markVideoReady();
+      }
+    };
 
-    // Принудительно запускаем декодер
+    v1.addEventListener('timeupdate', checkPlayingTime);
+    v1.addEventListener('playing', () => {
+      setTimeout(() => {
+        if (v1.currentTime > 0.05) markVideoReady();
+      }, 100);
+    });
+    v1.addEventListener('canplaythrough', () => {
+      if (v1.readyState >= 3) {
+        // Запасной триггер если currentTime задерживается
+        setTimeout(markVideoReady, 300);
+      }
+    });
+
+    // Запускаем воспроизведение без преждевременного снятия заставки
     const p = v1.play();
     if (p !== undefined) {
-      p.then(() => markVideoReady()).catch(() => markVideoReady());
+      p.catch(() => {});
     }
 
-    // Если видео уже в кэше и готово
-    if (v1.readyState >= 3) {
+    // Если видео уже воспроизводится
+    if (v1.currentTime > 0.1) {
       markVideoReady();
     }
   } else {
