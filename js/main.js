@@ -635,8 +635,8 @@ function initHeroVideoSwitcher() {
   if (!v1 || !v2) return;
 
   const playlist = [
-    'video/hero.mp4',
-    'video/a_Create_a_subtle_aest.mp4'
+    'video/hero.mp4?v=orig1',
+    'video/a_Create_a_subtle_aest.mp4?v=orig1'
   ];
 
   let currentIdx = 0;
