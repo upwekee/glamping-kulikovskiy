@@ -34,97 +34,89 @@ function initPreloader() {
 
   const startTime = Date.now();
   const minDisplayTime = 1400; // Минимальное время для плавной эстетики
-  let progress = 15;
   let isDone = false;
   let pageLoaded = (document.readyState === 'complete');
-  let videoReady = false;
+  let videoStarted = false;
 
   const setProgress = (val, text) => {
-    progress = Math.max(progress, val);
-    if (fill) fill.style.width = progress + '%';
+    if (fill) fill.style.width = val + '%';
     if (status && text && status.textContent !== text) {
       status.style.opacity = '0';
       setTimeout(() => {
         status.textContent = text;
         status.style.opacity = '1';
-      }, 130);
+      }, 120);
     }
   };
 
   if (fill) fill.style.width = '15%';
 
-  // Начальный плавный ход
-  setTimeout(() => setProgress(35, 'Погружение в тишину леса...'), 100);
-
-  // 1. Проверка загрузки DOM и изображений
+  // 1. Ждем загрузки DOM и изображений
   if (!pageLoaded) {
     window.addEventListener('load', () => {
       pageLoaded = true;
-      setProgress(60, 'Загрузка медиаматериалов...');
-      checkAllReady();
+      setProgress(50, 'Загрузка медиаматериалов...');
+      checkReady();
     });
   }
 
-  // 2. Отслеживание реальной буферизации видео
-  function markVideoReady() {
-    if (videoReady) return;
-    videoReady = true;
-    setProgress(92, 'Подготовка видеопанорамы...');
-    checkAllReady();
-  }
+  // 2. Отслеживание реального воспроизведения видео
+  const checkReady = () => {
+    if (pageLoaded && videoStarted) {
+      dismiss();
+    }
+  };
+
+  const onVideoPlaying = () => {
+    if (videoStarted) return;
+    videoStarted = true;
+    setProgress(95, 'Подготовка видеопанорамы...');
+    checkReady();
+  };
 
   if (v1) {
     v1.preload = 'auto';
     if (v2) v2.preload = 'auto';
 
-    // Слушаем прогресс скачивания видео
+    // Буферизация чанков в реальном времени
     v1.addEventListener('progress', () => {
       if (v1.duration > 0 && v1.buffered.length > 0) {
         const bufferedEnd = v1.buffered.end(v1.buffered.length - 1);
-        const ratio = Math.min(1, bufferedEnd / Math.min(v1.duration, 4)); // хотя бы 4 сек в буфере
+        const ratio = Math.min(1, bufferedEnd / Math.min(v1.duration, 3));
         const calcP = Math.floor(40 + ratio * 50);
         setProgress(calcP, 'Буферизация панорамы...');
       }
     });
 
-    // Событие timeupdate и playing с currentTime > 0.1 гарантируют, что видео РЕАЛЬНО пошло!
-    const checkPlayingTime = () => {
-      if (v1.currentTime > 0.1) {
-        markVideoReady();
+    // СТРОГО: только когда пошли реальные секунды воспроизведения!
+    const checkFrames = () => {
+      if (v1.currentTime > 0.15) {
+        onVideoPlaying();
       }
     };
 
-    v1.addEventListener('timeupdate', checkPlayingTime);
+    v1.addEventListener('timeupdate', checkFrames);
     v1.addEventListener('playing', () => {
-      setTimeout(() => {
-        if (v1.currentTime > 0.05) markVideoReady();
-      }, 100);
-    });
-    v1.addEventListener('canplaythrough', () => {
-      if (v1.readyState >= 3) {
-        // Запасной триггер если currentTime задерживается
-        setTimeout(markVideoReady, 300);
-      }
+      setTimeout(checkFrames, 150);
     });
 
-    // Запускаем воспроизведение без преждевременного снятия заставки
+    // Запускаем воспроизведение
     const p = v1.play();
     if (p !== undefined) {
       p.catch(() => {});
     }
 
-    // Если видео уже воспроизводится
-    if (v1.currentTime > 0.1) {
-      markVideoReady();
+    // Если видео уже играет (например при повторной инициализации)
+    if (v1.currentTime > 0.15) {
+      onVideoPlaying();
     }
-  } else {
-    videoReady = true;
-  }
 
-  function checkAllReady() {
-    if (pageLoaded && videoReady) {
-      dismiss();
-    }
+    // Тап/клик по заставке для мобилок с энергосбережением
+    preloader.addEventListener('click', () => {
+      v1.play().catch(() => {});
+    });
+  } else {
+    videoStarted = true;
   }
 
   const dismiss = () => {
@@ -146,12 +138,14 @@ function initPreloader() {
     }, remaining);
   };
 
-  // Страховочный таймаут (8 сек на случай совсем дохлой мобильной сети)
+  // Страховочный таймаут (12 сек на случай совсем мёртвой мобильной сети)
   setTimeout(() => {
     if (!isDone) {
+      videoStarted = true;
+      pageLoaded = true;
       dismiss();
     }
-  }, 8000);
+  }, 12000);
 }
 
 /* ==========================================================================
